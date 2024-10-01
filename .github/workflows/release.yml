@@ -1,0 +1,57 @@
+name: Rust Release Workflow
+
+on:
+  push:
+    tags:
+      - 'v*'  # Sadece v ile başlayan tag'lere push yapıldığında çalışır (örn: v1.0.0)
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Repo'yu klonla
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    # Rust'ı kur
+    - name: Set up Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        profile: minimal
+        override: true
+
+    # Dependencies yükle (isteğe bağlı, Cargo.lock güncellemek istiyorsan)
+    - name: Install dependencies
+      run: cargo fetch
+
+    # Testleri çalıştır
+    - name: Run tests
+      run: cargo test --verbose
+
+    # Release build al
+    - name: Build for release
+      run: cargo build --release
+
+    # Binaries'i topla
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-binary
+        path: target/release/learn-rust.exe # Burada kendi binary ismini yaz
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    # GitHub Release oluştur ve binary'i ekle
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: target/release/learn-rust.exe # Binary'i release'e ekle
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
